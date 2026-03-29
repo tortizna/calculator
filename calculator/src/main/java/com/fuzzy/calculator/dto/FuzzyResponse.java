@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FuzzyResponse {
-    private Double percentage;
+    private Double result;
     private String message;
 }

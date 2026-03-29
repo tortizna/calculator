@@ -1,13 +1,48 @@
 package com.fuzzy.calculator.service;
 
 import com.fuzzy.calculator.dto.FuzzyRequest;
+import com.fuzzy.calculator.dto.FuzzyResponse;
+import com.fuzzy.calculator.entity.CalculationHistory;
+import com.fuzzy.calculator.repository.CalculationHistoryRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class FuzzyLogicService {
+
+    private final CalculationHistoryRepository historyRepository;
+
+    @Transactional
+    public FuzzyResponse calculateAndSave(FuzzyRequest request) {
+
+        // 1.
+        double result = calculate(request);
+
+        String message = result > 10 ? "OK" : "ANOMALY";
+
+        // 2. Создаем сущность для БД
+        CalculationHistory historyRecord = new CalculationHistory();
+        historyRecord.setCheckValue(request.getCheckValue());
+        historyRecord.setRadius(request.getRadius());
+        historyRecord.setCycleMax(request.getCycleMax());
+        historyRecord.setResultValue(result);
+        historyRecord.setStatusMessage(message);
+        historyRecord.setCreatedAt(LocalDateTime.now());
+
+        // 3. Сохраняем в базу
+        historyRepository.save(historyRecord);
+
+        // 4. Возвращаем результат контроллеру
+        return new FuzzyResponse(result, message);
+
+    }
 
     public double calculate(FuzzyRequest request) {
 
@@ -72,5 +107,10 @@ public class FuzzyLogicService {
         }
 
         return distance;
+    }
+
+    public List<CalculationHistory> getHistory() {
+        // Достаем все записи, сортируя по убыванию ID (новые будут первыми)
+        return historyRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
     }
 }
